@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="GALAXYAN — HTML5 Canvas 네온 슈팅 게임" />
+  <title>GALAXYAN — 네온 슈팅</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="sky-backdrop" aria-hidden="true">
+    <div class="sky-nebula"></div>
+    <div class="sky-stars sky-stars--fine"></div>
+    <div class="sky-stars sky-stars--bright"></div>
+    <div class="sky-moon-wrap">
+      <div class="sky-moon-glow"></div>
+      <div class="sky-moon">
+        <span class="sky-moon-crater sky-moon-crater--1"></span>
+        <span class="sky-moon-crater sky-moon-crater--2"></span>
+        <span class="sky-moon-crater sky-moon-crater--3"></span>
+      </div>
+    </div>
+  </div>
+  <header class="game-header" aria-label="게임 타이틀">
+    <p class="game-eyebrow">ARCADE · SHOOT &apos;EM UP</p>
+    <h1 class="game-title"><span class="game-title-inner">GALAXYAN</span></h1>
+    <p class="game-tagline">Neon Squadron · HTML5 Canvas</p>
+    <p class="game-tagline-ko">겔럭시안 스타일 아케이드 슈팅</p>
+  </header>
+  <div id="wrap">
+    <canvas id="game" width="480" height="640" aria-label="게임 화면"></canvas>
+    <div id="start-overlay" class="screen-overlay">
+      <div class="overlay-card">
+        <p class="start-eyebrow">GALAXYAN</p>
+        <p class="start-heading">준비 완료</p>
+        <p class="start-desc">네온이 깜빡이는 심연 속으로.<br />당신의 포화가 새로운 별자리를 만든다.</p>
+        <button type="button" id="btn-start">게임 시작</button>
+      </div>
+    </div>
+    <div id="hud">
+      <div id="score-line">점수: <span id="score">0</span></div>
+      <div id="level-line">레벨: <span id="level">1</span></div>
+      <div id="hp-line" class="hud-hp">
+        <span class="hud-hp-label">체력</span>
+        <div
+          class="hud-hp-track"
+          role="progressbar"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow="100"
+          aria-label="플레이어 체력"
+        >
+          <div id="hp-fill" class="hud-hp-fill"></div>
+        </div>
+      </div>
+      <div id="lives-line">생명: <span id="lives">3</span></div>
+    </div>
+    <div id="overlay" class="hidden">
+      <div id="overlay-card">
+        <p id="overlay-title"></p>
+        <p id="overlay-hint">버튼을 누르거나 스페이스로 다시 시작</p>
+        <button type="button" id="btn-restart">다시 하기</button>
+      </div>
+    </div>
+  </div>
+  <script src="js/input.js"></script>
+  <script src="js/entities.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
