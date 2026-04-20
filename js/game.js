@@ -21,6 +21,238 @@
   const DIVE_STOP_BOTTOM_GAP = EN.margin;
   /** 벽에 부딪힐 때마다 내려오는 포메이션 전체가 더 위에서 멈추도록 anchorY 상한을 추가로 줄임(px) */
   const FORMATION_EXTRA_STOP_ABOVE = 36;
+
+  function updateEnemyHitFlash(dt) {
+    if (!state || !state.enemies) return;
+    for (const e of state.enemies) {
+      if (e.hitFlash != null && e.hitFlash > 0) {
+        e.hitFlash -= dt;
+        if (e.hitFlash <= 0) e.hitFlash = 0;
+      }
+    }
+  }
+
+  function spawnEnemyHitSparks(cx, cy, row) {
+    if (!state || !state.fxParticles) return;
+    const tint = E.colorForRow(row);
+    const colors = [tint, "#ffffff", "#a8eeff", "#fff6a8"];
+    const count = 11;
+    for (let i = 0; i < count; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      const spd = 52 + Math.random() * 130;
+      const maxLife = 0.11 + Math.random() * 0.11;
+      state.fxParticles.push({
+        x: cx + (Math.random() - 0.5) * 8,
+        y: cy + (Math.random() - 0.5) * 8,
+        vx: Math.cos(ang) * spd,
+        vy: Math.sin(ang) * spd,
+        life: maxLife,
+        maxLife,
+        size: 1.4 + Math.random() * 2.2,
+        color: colors[(Math.random() * colors.length) | 0],
+        drag: 0.9 + Math.random() * 0.06,
+        glow: true,
+      });
+    }
+  }
+
+  function spawnEnemyExplosion(cx, cy, row, elite) {
+    if (!state || !state.fxParticles) return;
+    const tint = E.colorForRow(row);
+    const burst = elite ? 56 : 42;
+    const colors = [
+      tint,
+      "#ffffff",
+      "#ffaa55",
+      "#ff5538",
+      "#ffe8a0",
+      "#88e8ff",
+    ];
+    for (let i = 0; i < burst; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      const spd = 95 + Math.random() * 280;
+      const maxLife = 0.26 + Math.random() * 0.46;
+      state.fxParticles.push({
+        x: cx + (Math.random() - 0.5) * 12,
+        y: cy + (Math.random() - 0.5) * 12,
+        vx: Math.cos(ang) * spd,
+        vy: Math.sin(ang) * spd - 25 * Math.random(),
+        life: maxLife,
+        maxLife,
+        size: 1.8 + Math.random() * 5.2,
+        color: colors[(Math.random() * colors.length) | 0],
+        drag: 0.85 + Math.random() * 0.08,
+        glow: Math.random() > 0.38,
+      });
+    }
+    const ringCount = elite ? 3 : 2;
+    for (let ri = 0; ri < ringCount; ri++) {
+      const maxLife = 0.2 + ri * 0.055 + Math.random() * 0.05;
+      state.fxRings.push({
+        cx,
+        cy,
+        life: maxLife,
+        maxLife,
+        rStart: 5 + ri * 7,
+        rEnd: (elite ? 62 : 50) + ri * 24 + Math.random() * 18,
+        w: 4 - ri * 0.85,
+        rgb:
+          ri === 0
+            ? "255,248,210"
+            : ri === 1
+              ? "255,150,90"
+              : "160,230,255",
+      });
+    }
+  }
+
+  function spawnFlankerExplosion(cx, cy) {
+    if (!state || !state.fxParticles) return;
+    const colors = ["#ffa8c8", "#ffffff", "#ff8844", "#ffe090"];
+    for (let i = 0; i < 26; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      const spd = 70 + Math.random() * 200;
+      const maxLife = 0.22 + Math.random() * 0.35;
+      state.fxParticles.push({
+        x: cx + (Math.random() - 0.5) * 8,
+        y: cy + (Math.random() - 0.5) * 8,
+        vx: Math.cos(ang) * spd,
+        vy: Math.sin(ang) * spd,
+        life: maxLife,
+        maxLife,
+        size: 1.6 + Math.random() * 3.8,
+        color: colors[(Math.random() * colors.length) | 0],
+        drag: 0.87 + Math.random() * 0.06,
+        glow: Math.random() > 0.45,
+      });
+    }
+    const maxLife = 0.26;
+    state.fxRings.push({
+      cx,
+      cy,
+      life: maxLife,
+      maxLife,
+      rStart: 4,
+      rEnd: 44 + Math.random() * 12,
+      w: 2.6,
+      rgb: "255, 190, 210",
+    });
+  }
+
+  function spawnBombBlastFx(px, py, radius) {
+    if (!state || !state.fxParticles) return;
+    const colors = ["#ffffff", "#ffd060", "#ff6820", "#ffc8ff", "#fff0a0"];
+    const burst = 72;
+    for (let i = 0; i < burst; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      const spd = 120 + Math.random() * 340;
+      const maxLife = 0.35 + Math.random() * 0.45;
+      state.fxParticles.push({
+        x: px + Math.cos(ang) * (18 + Math.random() * 40),
+        y: py + Math.sin(ang) * (18 + Math.random() * 40),
+        vx: Math.cos(ang) * spd,
+        vy: Math.sin(ang) * spd,
+        life: maxLife,
+        maxLife,
+        size: 2.4 + Math.random() * 6,
+        color: colors[(Math.random() * colors.length) | 0],
+        drag: 0.82 + Math.random() * 0.08,
+        glow: true,
+      });
+    }
+    for (let ri = 0; ri < 4; ri++) {
+      const maxLife = 0.32 + ri * 0.06;
+      state.fxRings.push({
+        cx: px,
+        cy: py,
+        life: maxLife,
+        maxLife,
+        rStart: 16 + ri * 28,
+        rEnd: radius + 40 + ri * 55 + Math.random() * 30,
+        w: 6 - ri * 0.9,
+        rgb:
+          ri === 0
+            ? "255,240,200"
+            : ri === 1
+              ? "255,140,80"
+              : ri === 2
+                ? "255,90,60"
+                : "255,255,255",
+      });
+    }
+  }
+
+  function updateFx(dt) {
+    if (!state) return;
+    const parts = state.fxParticles;
+    if (parts && parts.length) {
+      const next = [];
+      for (let i = 0; i < parts.length; i++) {
+        const p = parts[i];
+        p.life -= dt;
+        if (p.life <= 0) continue;
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        const d = p.drag != null ? p.drag : 0.9;
+        const f = Math.pow(d, dt * 60);
+        p.vx *= f;
+        p.vy *= f;
+        p.vy += 38 * dt;
+        next.push(p);
+      }
+      state.fxParticles = next;
+    }
+    const rings = state.fxRings;
+    if (rings && rings.length) {
+      state.fxRings = rings.filter((r) => {
+        r.life -= dt;
+        return r.life > 0;
+      });
+    }
+  }
+
+  function renderFx(ctx) {
+    if (!state) return;
+    const hasP = state.fxParticles && state.fxParticles.length;
+    const hasR = state.fxRings && state.fxRings.length;
+    if (!hasP && !hasR) return;
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    const plist = state.fxParticles || [];
+    for (let i = 0; i < plist.length; i++) {
+      const p = plist[i];
+      const a = p.life / p.maxLife;
+      if (a <= 0) continue;
+      ctx.globalAlpha = Math.min(1, a * 1.08);
+      if (p.glow) {
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 10;
+      } else {
+        ctx.shadowBlur = 0;
+      }
+      ctx.fillStyle = p.color;
+      const rs = p.size * (0.82 + 0.18 * a);
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, rs, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+    ctx.globalCompositeOperation = "source-over";
+    ctx.globalAlpha = 1;
+    const rlist = state.fxRings || [];
+    for (let i = 0; i < rlist.length; i++) {
+      const r = rlist[i];
+      const t = 1 - r.life / r.maxLife;
+      const radius = r.rStart + (r.rEnd - r.rStart) * t;
+      const alpha = (r.life / r.maxLife) * (0.75 - t * 0.35);
+      ctx.strokeStyle = `rgba(${r.rgb},${Math.max(0, alpha)})`;
+      ctx.lineWidth = r.w * (1 - t * 0.55);
+      ctx.beginPath();
+      ctx.arc(r.cx, r.cy, radius, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
   /** 적 탄 낙하 속도 상한 (고레벨 폭주 완화, px/s) */
   const ENEMY_BULLET_VY_MAX = 385;
 
@@ -111,6 +343,7 @@
   let flankSpawnTimer = 0;
   let powerupSpawnTimer = 0;
   let spacePrev = false;
+  let bombKeyPrev = false;
   let renderTimeSec = 0;
 
   function rngRange(a, b) {
@@ -173,15 +406,44 @@
     "ripple",
   ];
 
+  /** 파워↑ 아이템: 탄속만 상승 (부채 발사 수는 fanSpread 아이템) */
+  const MAX_BULLET_POWER = 14;
+
+  /** 리스폰 시 탄속 계급만 초기화 (부채 발사 수는 fanBullets로 분리됨) */
+  const BULLET_POWER_ON_RESPAWN = 1;
+  const BOMB_MAX_STOCK = 5;
+  /** 폭발이 닿는 범위(이전 228px 대비 50%) */
+  const BOMB_BLAST_RADIUS = 114;
+  /** 적진 방향으로 날아가는 폭탄 미사일 속도(px/s) */
+  const BOMB_MISSILE_SPEED = 498;
+  /** 폭탄 미사일 충돌 반경 */
+  const BOMB_MISSILE_HIT_R = 12;
+
+  /** 바닥 한계 도달 후 멈춤 시간(초), 그다음 상승 */
+  const FORMATION_BOTTOM_HOLD_SEC = 1.15;
+  /** 바닥에서 한 번에 올라오는 거리(px) */
+  const FORMATION_ASCEND_PX = 118;
+  const FORMATION_ASCEND_SPEED = 44;
+  /** 상승 후 anchorY 하한 (화면 위로 과도하게 나가지 않도록) */
+  const FORMATION_ANCHOR_MIN_Y = 46;
+  /** 포메이션 좌우 목표 속도 vx로 실제 이동 속도가 추종하는 시간 상수(초) — 작을수록 빡빡, 클수록 부드러움 */
+  const FORMATION_VEL_SMOOTH_TAU = 0.11;
+  /** 벽 충돌 시 아래로 한 단계 내려갈 때 순간 이동 대신 초당 내려가는 속도(px/s) */
+  const FORMATION_DESCEND_SMOOTH_RATE = 78;
+
   function rollPowerupKind() {
     const r = Math.random();
-    if (r < 0.056) {
+    if (r < 0.048) {
       if (state.lives < MAX_LIVES) return "heart";
       return "gem";
     }
-    if (r < 0.12) return "gem";
-    if (r < 0.182) return "shield";
-    if (r < 0.258) return Math.random() < 0.5 ? "healPill" : "healHeart";
+    if (r < 0.105) return "gem";
+    if (r < 0.156) return "shield";
+    /** 알약·하트 회복 — 이전(~7.6%)보다 구간 확대 (~14.7%) */
+    if (r < 0.305) return Math.random() < 0.5 ? "healPill" : "healHeart";
+    if (r < 0.385) return "powerBoost";
+    if (r < 0.465) return "fanSpread";
+    if (r < 0.598) return "bomb";
     return WEAPON_PICK_IDS[
       (Math.random() * WEAPON_PICK_IDS.length) | 0
     ];
@@ -252,7 +514,7 @@
   function resetRun() {
     const wave = createEnemies(1);
     flankSpawnTimer = 5;
-    powerupSpawnTimer = 8;
+    powerupSpawnTimer = rngRange(4, 7);
     state = {
       phase: "playing",
       player: createPlayer(),
@@ -261,18 +523,28 @@
       flankers: [],
       powerups: [],
       weapon: "standard",
+      bulletPower: 1,
+      fanBullets: 1,
       enemies: wave.enemies,
       formation: {
         anchorX: 28,
         anchorY: 62,
         vx: formationSpeedForLevel(1),
+        vxSmooth: formationSpeedForLevel(1),
+        pendingDescendY: 0,
         spacingX: wave.spacingX,
         spacingY: wave.spacingY,
+        bottomHoldTimer: 0,
+        ascendPixelsLeft: 0,
       },
       waveRows: wave.rows,
       score: 0,
       lives: 3,
       level: 1,
+      fxParticles: [],
+      fxRings: [],
+      bombStock: 0,
+      bombMissiles: [],
     };
     clampFormationAnchorY();
     const iv = diveIntervalRange();
@@ -292,6 +564,13 @@
     if (scoreEl) scoreEl.textContent = String(state.score);
     if (livesEl) livesEl.textContent = String(state.lives);
     if (levelEl) levelEl.textContent = String(state.level);
+    const bombHud = document.getElementById("bombs");
+    if (bombHud) {
+      bombHud.textContent =
+        state && typeof state.bombStock === "number"
+          ? String(state.bombStock)
+          : "0";
+    }
     if (hpFill && state.player && PL.maxHp != null) {
       const mx = PL.maxHp;
       const h = Math.max(0, Math.min(mx, state.player.hp != null ? state.player.hp : mx));
@@ -385,6 +664,50 @@
     if (state.formation.anchorY > cap) state.formation.anchorY = cap;
   }
 
+  function applyFormationDescendSmooth(dt) {
+    const a = state.formation;
+    if (!a || state.phase !== "playing") return;
+    if (a.bottomHoldTimer > 0) return;
+    let pending = a.pendingDescendY;
+    if (pending == null || pending <= 0) return;
+    const step = Math.min(FORMATION_DESCEND_SMOOTH_RATE * dt, pending);
+    const beforeY = a.anchorY;
+    const cap = maxFormationAnchorY();
+    a.anchorY += step;
+    a.pendingDescendY = pending - step;
+    clampFormationAnchorY();
+    if (beforeY < cap && a.anchorY >= cap - 0.04) {
+      a.bottomHoldTimer = FORMATION_BOTTOM_HOLD_SEC;
+      a.pendingDescendY = 0;
+    }
+  }
+
+  function updateFormationAscend(dt) {
+    const anchor = state.formation;
+    if (!anchor || state.phase !== "playing") return;
+    if (anchor.bottomHoldTimer == null) anchor.bottomHoldTimer = 0;
+    if (anchor.ascendPixelsLeft == null) anchor.ascendPixelsLeft = 0;
+
+    if (anchor.bottomHoldTimer > 0) {
+      anchor.bottomHoldTimer -= dt;
+      if (anchor.bottomHoldTimer <= 0) {
+        anchor.bottomHoldTimer = 0;
+        anchor.ascendPixelsLeft = FORMATION_ASCEND_PX;
+      }
+      return;
+    }
+
+    if (anchor.ascendPixelsLeft > 0) {
+      const dz = FORMATION_ASCEND_SPEED * dt;
+      const step = Math.min(dz, anchor.ascendPixelsLeft);
+      anchor.anchorY -= step;
+      anchor.ascendPixelsLeft -= step;
+      if (anchor.anchorY < FORMATION_ANCHOR_MIN_Y) {
+        anchor.anchorY = FORMATION_ANCHOR_MIN_Y;
+      }
+    }
+  }
+
   function resolveFormationWall(dt) {
     const anchor = state.formation;
     let hasGrid = false;
@@ -396,8 +719,15 @@
     }
     if (!hasGrid) return;
 
+    if (anchor.bottomHoldTimer > 0) return;
+
+    if (anchor.vxSmooth == null) anchor.vxSmooth = anchor.vx;
+    const smoothK =
+      dt > 0 ? 1 - Math.exp(-dt / FORMATION_VEL_SMOOTH_TAU) : 1;
+    anchor.vxSmooth += (anchor.vx - anchor.vxSmooth) * smoothK;
+
     const sx = anchor.spacingX != null ? anchor.spacingX : EN.spacingX;
-    const predictedX = anchor.anchorX + anchor.vx * dt;
+    const predictedX = anchor.anchorX + anchor.vxSmooth * dt;
     let minX = Infinity;
     let maxX = -Infinity;
     for (const e of state.enemies) {
@@ -410,8 +740,11 @@
 
     if (minX < EN.margin || maxX > W - EN.margin) {
       anchor.vx *= -1;
-      anchor.anchorY += formationDescendStep();
-      clampFormationAnchorY();
+      anchor.vxSmooth *= -1;
+      if (anchor.ascendPixelsLeft <= 0) {
+        anchor.pendingDescendY =
+          (anchor.pendingDescendY || 0) + formationDescendStep();
+      }
       playTone(110, 60, 0.03);
     } else {
       anchor.anchorX = predictedX;
@@ -457,6 +790,139 @@
     e.diveVx = 0;
     e.diveVy = 0;
     e.diveDuration = 0;
+  }
+
+  function circleHitsRect(cx, cy, r, rx, ry, rw, rh) {
+    const nx = Math.max(rx, Math.min(cx, rx + rw));
+    const ny = Math.max(ry, Math.min(cy, ry + rh));
+    const dx = cx - nx;
+    const dy = cy - ny;
+    return dx * dx + dy * dy < r * r;
+  }
+
+  /** 적 포메이션 중심(살아 있는 그리드 적 바운딩 박스) — 없으면 앵커 기준 추정 */
+  function getBombFormationTarget() {
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+    let any = false;
+    for (const e of state.enemies) {
+      if (!e.alive || e.diving || e.kind === "flank") continue;
+      const r = enemyRect(state, e);
+      any = true;
+      minX = Math.min(minX, r.x);
+      maxX = Math.max(maxX, r.x + r.w);
+      minY = Math.min(minY, r.y);
+      maxY = Math.max(maxY, r.y + r.h);
+    }
+    if (any) {
+      return { x: (minX + maxX) * 0.5, y: (minY + maxY) * 0.5 };
+    }
+    const f = state.formation;
+    const sx = f.spacingX != null ? f.spacingX : EN.spacingX;
+    const sy = f.spacingY != null ? f.spacingY : EN.spacingY;
+    let mc = 0;
+    let mr = 0;
+    for (const e of state.enemies) {
+      if (!e.alive || e.kind === "flank") continue;
+      mc = Math.max(mc, e.col);
+      mr = Math.max(mr, e.row);
+    }
+    const cx = f.anchorX + (mc * sx) * 0.5 + EN.w * 0.5;
+    const cy = f.anchorY + (mr * sy) * 0.5 + EN.h * 0.5;
+    return { x: cx, y: cy };
+  }
+
+  function detonateBombAt(px, py) {
+    if (!state || state.phase !== "playing") return;
+    const R = BOMB_BLAST_RADIUS;
+    spawnBombBlastFx(px, py, R);
+    playTone(120, 200, 0.056);
+    playTone(380, 140, 0.048);
+    playTone(620, 100, 0.042);
+    playTone(880, 70, 0.032);
+
+    for (const e of state.enemies) {
+      if (!e.alive) continue;
+      const er = enemyRect(state, e);
+      if (!circleHitsRect(px, py, R, er.x, er.y, er.w, er.h)) continue;
+      const ecx = er.x + er.w / 2;
+      const ecy = er.y + er.h / 2;
+      spawnEnemyExplosion(ecx, ecy, e.row, e.elite);
+      const ri = Math.min(e.row, EN.scoreByRow.length - 1);
+      const basePts = EN.scoreByRow[ri] ?? 10;
+      if (e.diving) endEnemyDive(e);
+      e.alive = false;
+      const mult = e.elite ? 1.35 : 1;
+      state.score += Math.floor(basePts * mult);
+    }
+
+    const flankArr = state.flankers || [];
+    for (let fi = 0; fi < flankArr.length; fi++) {
+      const fk = flankArr[fi];
+      if (!fk.alive) continue;
+      if (!circleHitsRect(px, py, R, fk.x, fk.y, fk.w, fk.h)) continue;
+      spawnFlankerExplosion(fk.x + fk.w / 2, fk.y + fk.h / 2);
+      fk.alive = false;
+      state.score += 28 + Math.min(state.level * 6, 72);
+    }
+
+    syncHud();
+  }
+
+  function updateBombMissiles(dt) {
+    const list = state.bombMissiles;
+    if (!list || list.length === 0) return;
+    const hitR = BOMB_MISSILE_HIT_R;
+    const pad = 36;
+    const next = [];
+
+    for (let mi = 0; mi < list.length; mi++) {
+      const m = list[mi];
+      m.x += m.vx * dt;
+      m.y += m.vy * dt;
+
+      let boom = false;
+      for (const e of state.enemies) {
+        if (!e.alive) continue;
+        const er = enemyRect(state, e);
+        if (circleHitsRect(m.x, m.y, hitR, er.x, er.y, er.w, er.h)) {
+          detonateBombAt(m.x, m.y);
+          boom = true;
+          break;
+        }
+      }
+      if (boom) continue;
+
+      const flankArr = state.flankers || [];
+      for (let fi = 0; fi < flankArr.length; fi++) {
+        const fk = flankArr[fi];
+        if (!fk.alive) continue;
+        if (circleHitsRect(m.x, m.y, hitR, fk.x, fk.y, fk.w, fk.h)) {
+          detonateBombAt(m.x, m.y);
+          boom = true;
+          break;
+        }
+      }
+      if (boom) continue;
+
+      if (
+        m.x < -pad ||
+        m.x > W + pad ||
+        m.y < -pad ||
+        m.y > H + pad
+      ) {
+        detonateBombAt(
+          Math.max(0, Math.min(W, m.x)),
+          Math.max(0, Math.min(H, m.y))
+        );
+        continue;
+      }
+
+      next.push(m);
+    }
+    state.bombMissiles = next;
   }
 
   function updateDivingEnemies(dt) {
@@ -640,13 +1106,40 @@
       const cdMul = E.spawnPlayerBullets(
         cx,
         p.y,
-        state.level,
+        state.bulletPower,
+        state.fanBullets,
         state.bullets,
         state.weapon
       );
       p.cooldown = PL.fireCooldown * cdMul;
       playTone(620, 35, 0.03);
     }
+
+    const bombNow = global.Input.isDown("KeyB");
+    if (
+      bombNow &&
+      !bombKeyPrev &&
+      state.bombStock > 0
+    ) {
+      state.bombStock -= 1;
+      syncHud();
+      const tg = getBombFormationTarget();
+      const sx = p.x + p.w / 2;
+      const sy = p.y + p.h / 2;
+      let dx = tg.x - sx;
+      let dy = tg.y - sy;
+      const len = Math.hypot(dx, dy) || 1;
+      const sp = BOMB_MISSILE_SPEED;
+      state.bombMissiles.push({
+        x: sx,
+        y: sy,
+        vx: (dx / len) * sp,
+        vy: (dy / len) * sp,
+      });
+      playTone(260, 55, 0.036);
+      playTone(420, 38, 0.028);
+    }
+    bombKeyPrev = bombNow;
   }
 
   function updateBullets(dt) {
@@ -707,6 +1200,7 @@
         if (!fk.alive) continue;
         const fr = { x: fk.x, y: fk.y, w: fk.w, h: fk.h };
         if (E.rectIntersect(br, fr)) {
+          spawnFlankerExplosion(fk.x + fk.w / 2, fk.y + fk.h / 2);
           fk.alive = false;
           consumePlayerBullet(i);
           state.score += 28 + Math.min(state.level * 6, 72);
@@ -720,15 +1214,20 @@
         if (!e.alive) continue;
         const er = enemyRect(state, e);
         if (E.rectIntersect(br, er)) {
+          const cx = er.x + er.w / 2;
+          const cy = er.y + er.h / 2;
           const hp0 = e.hp != null ? e.hp : 1;
           e.hp = hp0 - 1;
           const basePts = rowScore(e.row);
           if (e.hp <= 0) {
             e.alive = false;
+            spawnEnemyExplosion(cx, cy, e.row, e.elite);
             const mult = e.elite ? 1.35 : 1;
             state.score += Math.floor(basePts * mult);
             playTone(440, 50, 0.04);
           } else {
+            e.hitFlash = 0.16;
+            spawnEnemyHitSparks(cx, cy, e.row);
             state.score += Math.max(2, Math.floor(basePts * 0.14));
             playTone(370, 32, 0.032);
           }
@@ -766,16 +1265,21 @@
         const er = enemyRect(state, e);
         if (E.rectIntersect(pRect, er)) {
           if (e.diving) {
+            const cx = er.x + er.w / 2;
+            const cy = er.y + er.h / 2;
             const hp0 = e.hp != null ? e.hp : 1;
             e.hp = hp0 - 1;
             const basePts = rowScore(e.row);
             if (e.hp <= 0) {
               e.alive = false;
               endEnemyDive(e);
+              spawnEnemyExplosion(cx, cy, e.row, e.elite);
               const mult = e.elite ? 1.35 : 1;
               state.score += Math.floor(basePts * mult);
               playTone(440, 50, 0.04);
             } else {
+              e.hitFlash = 0.16;
+              spawnEnemyHitSparks(cx, cy, e.row);
               state.score += Math.max(2, Math.floor(basePts * 0.14));
               playTone(370, 32, 0.032);
             }
@@ -837,7 +1341,7 @@
         kind: rollPowerupKind(),
         alive: true,
       });
-      powerupSpawnTimer = rngRange(11, 18);
+      powerupSpawnTimer = rngRange(5.5, 9);
     }
 
     const t = renderTimeSec;
@@ -905,6 +1409,39 @@
           state.player.shieldHits = Math.min(2, sh + 1);
           playTone(540, 45, 0.04);
           playTone(780, 35, 0.032);
+        } else if (k === "powerBoost") {
+          if (state.bulletPower < MAX_BULLET_POWER) {
+            state.bulletPower += 1;
+            playTone(820, 52, 0.04);
+            playTone(980, 38, 0.034);
+            playTone(680, 28, 0.026);
+          } else {
+            state.score += 380;
+            playTone(720, 38, 0.032);
+            playTone(980, 22, 0.024);
+          }
+        } else if (k === "fanSpread") {
+          if (state.fanBullets < 5) {
+            state.fanBullets =
+              state.fanBullets <= 1 ? 2 : state.fanBullets + 1;
+            playTone(580, 48, 0.036);
+            playTone(760, 42, 0.032);
+            playTone(920, 28, 0.024);
+          } else {
+            state.score += 420;
+            playTone(700, 35, 0.03);
+            playTone(520, 22, 0.022);
+          }
+        } else if (k === "bomb") {
+          if (state.bombStock < BOMB_MAX_STOCK) {
+            state.bombStock += 1;
+            playTone(480, 55, 0.04);
+            playTone(720, 42, 0.034);
+            playTone(320, 38, 0.028);
+          } else {
+            state.score += 280;
+            playTone(660, 32, 0.028);
+          }
         } else {
           state.weapon = k;
           playTone(840, 55, 0.048);
@@ -951,6 +1488,9 @@
     p.invuln = PL.invulnAfterHit;
     state.bullets.length = 0;
     state.weapon = "standard";
+    state.bulletPower = BULLET_POWER_ON_RESPAWN;
+    state.fanBullets = 1;
+    if (state.bombMissiles) state.bombMissiles.length = 0;
     syncHud();
   }
 
@@ -970,13 +1510,21 @@
       maxFormationAnchorY()
     );
     state.formation.vx = formationSpeedForLevel(state.level);
+    state.formation.vxSmooth = state.formation.vx;
+    state.formation.pendingDescendY = 0;
+    state.formation.bottomHoldTimer = 0;
+    state.formation.ascendPixelsLeft = 0;
+
+    if (state.bombMissiles) state.bombMissiles.length = 0;
 
     state.bullets.length = 0;
     state.enemyBullets.length = 0;
     state.flankers.length = 0;
     state.powerups.length = 0;
+    if (state.fxParticles) state.fxParticles.length = 0;
+    if (state.fxRings) state.fxRings.length = 0;
     flankSpawnTimer = rngRange(3.5, 5.5);
-    powerupSpawnTimer = rngRange(5, 8);
+    powerupSpawnTimer = rngRange(3.5, 6.5);
 
     const iv = diveIntervalRange();
     diveTimer = rngRange(iv[0], iv[1]);
@@ -1010,6 +1558,7 @@
     for (const e of state.enemies) {
       E.drawEnemy(ctx, e, state.formation);
     }
+    renderFx(ctx);
     const flankList = state.flankers || [];
     for (let fi = 0; fi < flankList.length; fi++) {
       E.drawFlanker(ctx, flankList[fi]);
@@ -1022,6 +1571,11 @@
     }
 
     E.drawPlayer(ctx, state.player, renderTimeSec);
+
+    const boms = state.bombMissiles || [];
+    for (let bi = 0; bi < boms.length; bi++) {
+      E.drawBombMissile(ctx, boms[bi], renderTimeSec);
+    }
 
     for (const b of state.bullets) {
       E.drawBullet(ctx, b, {
@@ -1058,19 +1612,28 @@
     }
     spacePrev = spaceDown;
 
-    if (state.phase !== "playing") return;
+    if (state.phase === "title") return;
 
-    updatePlayer(dt);
-    resolveFormationWall(dt);
-    startDiveIfNeeded(dt);
-    updateDivingEnemies(dt);
-    updateFlankers(dt);
-    updatePowerups(dt);
-    collectPowerups();
-    tryEnemyShoot(dt);
-    updateBullets(dt);
-    handleCollisions();
-    checkWinLose();
+    if (state.phase === "playing") {
+      updatePlayer(dt);
+      updateBombMissiles(dt);
+      updateFormationAscend(dt);
+      applyFormationDescendSmooth(dt);
+      resolveFormationWall(dt);
+      startDiveIfNeeded(dt);
+      updateDivingEnemies(dt);
+      updateFlankers(dt);
+      updatePowerups(dt);
+      collectPowerups();
+      tryEnemyShoot(dt);
+      updateBullets(dt);
+      updateEnemyHitFlash(dt);
+      handleCollisions();
+      updateFx(dt);
+      checkWinLose();
+    } else if (state.phase === "gameover") {
+      updateFx(dt);
+    }
   }
 
   function loop(ts) {

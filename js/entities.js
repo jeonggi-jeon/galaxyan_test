@@ -88,15 +88,24 @@
     },
   };
 
-  function getShotPattern(level) {
-    const lv = Math.max(1, level | 0);
+  /**
+   * bulletPower: 탄 속도만 (파워업 아이템)
+   * fanBullets: 부채 발사 수 1=직선 한 발, 2~5=부채 (부채 전용 아이템으로만 증가)
+   */
+  function getShotPattern(bulletPower, fanBullets) {
+    const lv = Math.max(1, bulletPower | 0);
     const bulletVY =
       BULLET.playerVy + (lv - 1) * LEVEL.bulletSpeedPerLevel;
-    const count = Math.min(1 + 2 * (lv - 1), LEVEL.maxVolley);
-    const spreadDeg = Math.min(
-      LEVEL.spreadDegBase + (lv - 1) * LEVEL.spreadDegPerLevel,
-      LEVEL.maxSpreadDeg
-    );
+    const fb = Math.max(1, Math.min(5, fanBullets | 0));
+    const count = fb;
+    let spreadDeg = 0;
+    if (count >= 2) {
+      spreadDeg = Math.min(
+        LEVEL.spreadDegBase +
+          (count - 2) * LEVEL.spreadDegPerLevel,
+        LEVEL.maxSpreadDeg
+      );
+    }
     let fireCooldownMul =
       1 +
       LEVEL.cooldownPenaltyPerExtra * Math.max(0, count - 1);
@@ -106,9 +115,9 @@
     return { bulletVY, count, spreadDeg, fireCooldownMul };
   }
 
-  function spawnPlayerBullets(cx, topY, level, into, weaponKey) {
+  function spawnPlayerBullets(cx, topY, bulletPower, fanBullets, into, weaponKey) {
     const wp = WEAPON[weaponKey] || WEAPON.standard;
-    const pat = getShotPattern(level);
+    const pat = getShotPattern(bulletPower, fanBullets);
     const mag = Math.abs(pat.bulletVY);
     const n = pat.count;
     const half = pat.spreadDeg / 2;
@@ -419,6 +428,30 @@
       : "rgba(255,255,255,0.55)";
     ctx.lineWidth = e.elite ? 2.4 : 1.25;
     ctx.stroke();
+
+    const hitPulse =
+      e.hitFlash != null && e.hitFlash > 0
+        ? Math.min(1, e.hitFlash / 0.16)
+        : 0;
+    if (hitPulse > 0) {
+      ctx.globalCompositeOperation = "lighter";
+      ctx.shadowColor = "#ffffff";
+      ctx.shadowBlur = 12 + 16 * hitPulse;
+      ctx.strokeStyle = `rgba(255, 255, 255, ${0.55 + 0.45 * hitPulse})`;
+      ctx.lineWidth = (e.elite ? 2.4 : 1.25) + 4 * hitPulse;
+      ctx.beginPath();
+      ctx.moveTo(0, -ENEMY.h / 2);
+      ctx.lineTo(ENEMY.w / 2, ENEMY.h / 2);
+      ctx.lineTo(-ENEMY.w / 2, ENEMY.h / 2);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.globalAlpha = 0.38 + 0.42 * hitPulse;
+      ctx.fillStyle = "rgba(200, 235, 255, 0.85)";
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "source-over";
+    }
 
     if (e.elite && e.hp != null && e.hp > 1) {
       ctx.fillStyle = "rgba(255,210,90,0.9)";
@@ -1180,27 +1213,160 @@
     ctx.restore();
   }
 
-  function drawPowerup(ctx, p, timeSec) {
+  /** 탄 넓이·발사 수 강화 — 육각형 + 번개 (무기 교체 아이템과 형태로 구분) */
+  function drawPowerBoostPowerup(ctx, p, timeSec) {
     const t = timeSec || 0;
     const cx = p.x + p.w / 2;
     const cy = p.y + p.h / 2;
-    const pulse = 0.92 + 0.08 * Math.sin(t * 6 + p.y * 0.04);
+    const pulse = 0.9 + 0.1 * Math.sin(t * 7 + p.y * 0.05);
+    const sc = p.w * 0.52;
 
-    if (p.kind === "healPill") {
-      drawHealPillPowerup(ctx, p, timeSec);
-      return;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(pulse, pulse);
+
+    const halo = ctx.createRadialGradient(0, 0, 0, 0, 0, sc * 2.8);
+    halo.addColorStop(0, "rgba(255,200,80,0.55)");
+    halo.addColorStop(0.45, "rgba(255,120,40,0.18)");
+    halo.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = halo;
+    ctx.beginPath();
+    ctx.arc(0, 0, sc * 2.4, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.rotate(Math.sin(t * 5) * 0.06);
+    ctx.strokeStyle = "rgba(255,240,200,0.65)";
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 6; i++) {
+      const rr = sc * (1.05 + i * 0.07);
+      ctx.globalAlpha = 0.35 - i * 0.04;
+      ctx.beginPath();
+      for (let k = 0; k < 6; k++) {
+        const a = (k / 6) * Math.PI * 2 - Math.PI / 2;
+        const x = Math.cos(a) * rr;
+        const y = Math.sin(a) * rr;
+        if (k === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.stroke();
     }
-    if (p.kind === "healHeart") {
-      drawHealHeartPowerup(ctx, p, timeSec);
-      return;
+    ctx.globalAlpha = 1;
+
+    ctx.shadowColor = "#ff9020";
+    ctx.shadowBlur = 18;
+    const body = ctx.createLinearGradient(-sc, -sc, sc, sc);
+    body.addColorStop(0, "#fff4c8");
+    body.addColorStop(0.35, "#ffb030");
+    body.addColorStop(0.65, "#ff6810");
+    body.addColorStop(1, "#904010");
+    ctx.fillStyle = body;
+    ctx.beginPath();
+    for (let k = 0; k < 6; k++) {
+      const a = (k / 6) * Math.PI * 2 - Math.PI / 2;
+      const x = Math.cos(a) * sc;
+      const y = Math.sin(a) * sc;
+      if (k === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
     }
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.85)";
+    ctx.lineWidth = 2.2;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
 
-    const spin = t * 2.8 + p.x * 0.02;
+    ctx.strokeStyle = "rgba(255,255,255,0.5)";
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(-sc * 0.15, -sc * 0.55);
+    ctx.lineTo(-sc * 0.15, sc * 0.25);
+    ctx.lineTo(sc * 0.35, -sc * 0.15);
+    ctx.stroke();
 
-    let core = "#66ffe8";
-    let rim = "#ffffff";
-    let halo = "rgba(100,255,240,0.45)";
-    let accent = "#00ffd8";
+    ctx.fillStyle = "rgba(0,0,0,0.55)";
+    ctx.font = "bold 8px system-ui,sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("PWR", 0, sc * 0.62);
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 11px system-ui,sans-serif";
+    ctx.fillText("↑", 0, -sc * 0.08);
+
+    ctx.restore();
+  }
+
+  /** 부채 발사 수 증가 — 부채 실루엣(호 3개) */
+  function drawFanSpreadPowerup(ctx, p, timeSec) {
+    const t = timeSec || 0;
+    const cx = p.x + p.w / 2;
+    const cy = p.y + p.h / 2;
+    const pulse = 0.91 + 0.09 * Math.sin(t * 6.4 + p.y * 0.046);
+    const sc = p.w * 0.48;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(pulse, pulse);
+
+    const halo = ctx.createRadialGradient(0, sc * 0.2, 0, 0, 0, sc * 2.6);
+    halo.addColorStop(0, "rgba(80,255,200,0.5)");
+    halo.addColorStop(0.5, "rgba(40,200,160,0.15)");
+    halo.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.globalAlpha = 0.92;
+    ctx.fillStyle = halo;
+    ctx.beginPath();
+    ctx.arc(0, 0, sc * 2.3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    ctx.shadowColor = "#40ffc8";
+    ctx.shadowBlur = 16;
+    ctx.strokeStyle = "rgba(220,255,248,0.95)";
+    ctx.lineWidth = 2.4;
+    ctx.lineCap = "round";
+    for (let i = -2; i <= 2; i++) {
+      const ang = (i / 2.2) * 0.65;
+      ctx.beginPath();
+      ctx.arc(
+        Math.sin(ang) * sc * 0.15,
+        sc * 0.18,
+        sc * 1.05,
+        -Math.PI * 0.72 + ang * 0.25,
+        -Math.PI * 0.28 + ang * 0.25
+      );
+      ctx.stroke();
+    }
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "rgba(0,80,60,0.55)";
+    ctx.font = "bold 8px system-ui,sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("SPREAD", 0, sc * 0.72);
+
+    ctx.fillStyle = "#e8fff8";
+    ctx.font = "bold 10px system-ui,sans-serif";
+    ctx.fillText("⌒", 0, -sc * 0.05);
+
+    ctx.restore();
+  }
+
+  /** 무기 교체 — 가로 캡슐 + 총구 (파워업 육각형과 명확히 구분) */
+  function drawWeaponChangePowerup(ctx, p, timeSec) {
+    const t = timeSec || 0;
+    const cx = p.x + p.w / 2;
+    const cy = p.y + p.h / 2;
+    const pulse = 0.93 + 0.07 * Math.sin(t * 6.5 + p.y * 0.045);
+    const w = p.w * 0.78;
+    const h = p.h * 0.42;
+    const tip = p.w * 0.22;
+
+    let core = "#48fff8";
+    let rim = "#e0ffff";
+    let halo = "rgba(80,240,255,0.5)";
+    let accent = "#20e8ff";
     if (p.kind === "plasma") {
       core = "#48fff8";
       rim = "#e0ffff";
@@ -1266,7 +1432,113 @@
       rim = "#e0fff5";
       halo = "rgba(100,255,200,0.48)";
       accent = "#30d0a0";
-    } else if (p.kind === "gem") {
+    }
+
+    const spin = t * 2.6 + p.x * 0.018;
+    const hw = w / 2;
+    const hh = h / 2;
+    const rad = Math.min(h * 0.45, w * 0.12);
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(Math.sin(spin * 0.08) * 0.06);
+    ctx.scale(pulse, pulse);
+
+    const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, p.w * 1.35);
+    glow.addColorStop(0, halo);
+    glow.addColorStop(0.55, "rgba(0,0,0,0)");
+    glow.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(0, 0, p.w * 1.15, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    ctx.strokeStyle = "rgba(160,210,255,0.65)";
+    ctx.lineWidth = 2.4;
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    ctx.arc(0, 0, hw + tip * 0.85, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.shadowColor = accent;
+    ctx.shadowBlur = 14;
+    const bodyGrad = ctx.createLinearGradient(-hw, -hh, hw + tip, hh);
+    bodyGrad.addColorStop(0, rim);
+    bodyGrad.addColorStop(0.25, core);
+    bodyGrad.addColorStop(0.72, accent);
+    bodyGrad.addColorStop(1, "rgba(24,28,52,0.96)");
+    ctx.fillStyle = bodyGrad;
+    ctx.strokeStyle = "rgba(190,230,255,0.92)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-hw + rad, -hh);
+    ctx.lineTo(hw - rad, -hh);
+    ctx.arcTo(hw, -hh, hw, -hh + rad, rad);
+    ctx.lineTo(hw, hh - rad);
+    ctx.arcTo(hw, hh, hw - rad, hh, rad);
+    ctx.lineTo(-hw + rad, hh);
+    ctx.arcTo(-hw, hh, -hw, hh - rad, rad);
+    ctx.lineTo(-hw, -hh + rad);
+    ctx.arcTo(-hw, -hh, -hw + rad, -hh, rad);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "rgba(36,44,72,0.92)";
+    ctx.fillRect(hw - rad * 0.3, -hh * 0.68, tip * 0.92, h * 0.72);
+    ctx.strokeStyle = "rgba(220,240,255,0.55)";
+    ctx.lineWidth = 1.2;
+    ctx.strokeRect(hw - rad * 0.3, -hh * 0.68, tip * 0.92, h * 0.72);
+
+    ctx.fillStyle = "rgba(255,255,255,0.75)";
+    ctx.font = "bold 8px system-ui,sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("WEAPON", 0, hh + 11);
+
+    const weaponLabels = {
+      plasma: "P",
+      shard: "S",
+      bolt: "L",
+      rail: "R",
+      ember: "E",
+      nova: "N",
+      burst: "B",
+      arc: "A",
+      comet: "C",
+      prism: "I",
+      ion: "O",
+      specter: "G",
+      ripple: "W",
+    };
+    ctx.fillStyle = "rgba(0,0,0,0.55)";
+    ctx.font = "bold 11px system-ui,sans-serif";
+    const lab = weaponLabels[p.kind] || "?";
+    ctx.fillText(lab, 0, 1);
+    ctx.fillStyle = rim;
+    ctx.font = "bold 10px system-ui,sans-serif";
+    ctx.fillText(lab, 0, 0);
+
+    ctx.restore();
+  }
+
+  /** 보석·생명·실드 — 다이아몬드 실루엣 유지 */
+  function drawUtilityPowerup(ctx, p, timeSec) {
+    const t = timeSec || 0;
+    const cx = p.x + p.w / 2;
+    const cy = p.y + p.h / 2;
+    const pulse = 0.92 + 0.08 * Math.sin(t * 6 + p.y * 0.04);
+    const spin = t * 2.8 + p.x * 0.02;
+
+    let core = "#ffd84a";
+    let rim = "#fff8c8";
+    let halo = "rgba(255,220,80,0.55)";
+    let accent = "#e8a010";
+    if (p.kind === "gem") {
       core = "#ffd84a";
       rim = "#fff8c8";
       halo = "rgba(255,220,80,0.55)";
@@ -1356,28 +1628,140 @@
     ctx.font = "bold 9px system-ui,sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    const labels = {
-      plasma: "P",
-      shard: "S",
-      bolt: "L",
-      rail: "R",
-      ember: "E",
-      nova: "N",
-      burst: "B",
-      arc: "A",
-      comet: "C",
-      prism: "I",
-      ion: "O",
-      specter: "G",
-      ripple: "W",
+    const utilLabels = {
       gem: "$",
       heart: "+",
       shield: "K",
     };
-    const label = labels[p.kind] || "?";
+    const label = utilLabels[p.kind] || "?";
     ctx.fillText(label, 0, 1);
 
     ctx.restore();
+  }
+
+  /** 폭탄 습득 아이템 — 검은 원형 + 심지 */
+  function drawBombPickupPowerup(ctx, p, timeSec) {
+    const t = timeSec || 0;
+    const cx = p.x + p.w / 2;
+    const cy = p.y + p.h / 2;
+    const pulse = 0.9 + 0.1 * Math.sin(t * 6.8 + p.y * 0.044);
+    const sc = p.w * 0.42;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(pulse, pulse);
+
+    const halo = ctx.createRadialGradient(0, 0, 0, 0, 0, sc * 2.6);
+    halo.addColorStop(0, "rgba(255,120,60,0.45)");
+    halo.addColorStop(0.55, "rgba(80,40,20,0.12)");
+    halo.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.globalAlpha = 0.88;
+    ctx.fillStyle = halo;
+    ctx.beginPath();
+    ctx.arc(0, 0, sc * 2.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    ctx.shadowColor = "#ff6030";
+    ctx.shadowBlur = 16;
+    const body = ctx.createRadialGradient(-sc * 0.2, -sc * 0.25, 0, 0, 0, sc * 1.2);
+    body.addColorStop(0, "#6a6a72");
+    body.addColorStop(0.55, "#2a2a30");
+    body.addColorStop(1, "#101018");
+    ctx.fillStyle = body;
+    ctx.beginPath();
+    ctx.arc(0, sc * 0.06, sc * 1.05, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    ctx.strokeStyle = "rgba(255,200,160,0.55)";
+    ctx.lineWidth = 1.8;
+    ctx.stroke();
+
+    ctx.fillStyle = "#ffd8c8";
+    ctx.fillRect(-sc * 0.08, -sc * 1.35, sc * 0.16, sc * 0.42);
+    ctx.fillStyle = "#ff5020";
+    ctx.beginPath();
+    ctx.arc(0, -sc * 1.45, sc * 0.12, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "rgba(255,160,90,0.55)";
+    ctx.font = "bold 8px system-ui,sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("BOMB", 0, sc * 0.92);
+
+    ctx.restore();
+  }
+
+  /** 플레이어가 발사한 적진 향 폭탄 미사일 */
+  function drawBombMissile(ctx, m, timeSec) {
+    const t = timeSec || 0;
+    const phase = t * 22 + m.x * 0.06;
+    const cx = m.x;
+    const cy = m.y;
+    const ang = Math.atan2(m.vy, m.vx);
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(ang + Math.PI * 0.5);
+
+    ctx.shadowColor = "#ff7040";
+    ctx.shadowBlur = 20 + Math.sin(phase) * 5;
+    const trail = ctx.createLinearGradient(0, 14, 0, -18);
+    trail.addColorStop(0, "rgba(255,120,40,0)");
+    trail.addColorStop(0.35, "rgba(255,160,80,0.55)");
+    trail.addColorStop(1, "rgba(255,240,200,0.95)");
+    ctx.strokeStyle = trail;
+    ctx.lineWidth = 6;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(0, 12);
+    ctx.lineTo(0, -10);
+    ctx.stroke();
+
+    const core = ctx.createRadialGradient(-2, -4, 0, 0, 0, 13);
+    core.addColorStop(0, "#ffffff");
+    core.addColorStop(0.35, "#ffc858");
+    core.addColorStop(0.72, "#ff5820");
+    core.addColorStop(1, "rgba(180,40,10,0.35)");
+    ctx.fillStyle = core;
+    ctx.beginPath();
+    ctx.arc(0, -2, 10, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = "rgba(255,220,180,0.65)";
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function drawPowerup(ctx, p, timeSec) {
+    if (p.kind === "healPill") {
+      drawHealPillPowerup(ctx, p, timeSec);
+      return;
+    }
+    if (p.kind === "healHeart") {
+      drawHealHeartPowerup(ctx, p, timeSec);
+      return;
+    }
+    if (p.kind === "fanSpread") {
+      drawFanSpreadPowerup(ctx, p, timeSec);
+      return;
+    }
+    if (p.kind === "bomb") {
+      drawBombPickupPowerup(ctx, p, timeSec);
+      return;
+    }
+    if (p.kind === "powerBoost") {
+      drawPowerBoostPowerup(ctx, p, timeSec);
+      return;
+    }
+    if (WEAPON[p.kind] && p.kind !== "standard") {
+      drawWeaponChangePowerup(ctx, p, timeSec);
+      return;
+    }
+    drawUtilityPowerup(ctx, p, timeSec);
   }
 
   global.Entities = {
@@ -1399,6 +1783,7 @@
     drawEnemy,
     drawFlanker,
     drawBullet,
+    drawBombMissile,
     drawPowerup,
   };
 })(typeof window !== "undefined" ? window : this);
