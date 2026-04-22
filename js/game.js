@@ -581,6 +581,28 @@
     hideOverlay();
   }
 
+  const WEAPON_LABEL_KO = {
+    standard: "스탠다드",
+    plasma: "플라즈마",
+    shard: "샤드",
+    bolt: "볼트",
+    rail: "레일",
+    ember: "엠버",
+    nova: "노바",
+    burst: "버스트",
+    arc: "아크",
+    comet: "코멧",
+    prism: "프리즘",
+    ion: "이온",
+    specter: "스펙터",
+    ripple: "리플",
+  };
+
+  function weaponLabelKo(weaponKey) {
+    if (!weaponKey) return "—";
+    return WEAPON_LABEL_KO[weaponKey] || String(weaponKey);
+  }
+
   function syncHud() {
     const scoreEl = document.getElementById("score");
     const livesEl = document.getElementById("lives");
@@ -590,6 +612,35 @@
     if (scoreEl) scoreEl.textContent = String(state.score);
     if (livesEl) livesEl.textContent = String(state.lives);
     if (levelEl) levelEl.textContent = String(state.level);
+
+    const blP = document.getElementById("hud-bullet-pwr");
+    if (blP) {
+      if (state && state.bulletPower != null) {
+        blP.textContent =
+          String(state.bulletPower | 0) + "/" + String(MAX_BULLET_POWER);
+      } else {
+        blP.textContent = "—";
+      }
+    }
+    const dmgE = document.getElementById("hud-damage-lv");
+    if (dmgE) {
+      if (state && state.damageLevel != null) {
+        const d = Math.max(
+          1,
+          Math.min(MAX_DAMAGE_LEVEL, state.damageLevel | 0)
+        );
+        dmgE.textContent = d + "/" + String(MAX_DAMAGE_LEVEL);
+      } else {
+        dmgE.textContent = "—";
+      }
+    }
+    const wEl = document.getElementById("hud-weapon");
+    if (wEl) {
+      wEl.textContent =
+        state && state.weapon
+          ? weaponLabelKo(state.weapon)
+          : "—";
+    }
     const bombHud = document.getElementById("bombs");
     if (bombHud) {
       bombHud.textContent =
@@ -652,6 +703,8 @@
     ensureAudio();
     const hud = document.getElementById("hud");
     if (hud) hud.classList.remove("hud-idle");
+    const loadout = document.getElementById("hud-loadout");
+    if (loadout) loadout.classList.remove("hud-idle");
     resetRun();
   }
 
@@ -1707,6 +1760,8 @@
       state = { phase: "title" };
       const hud = document.getElementById("hud");
       if (hud) hud.classList.add("hud-idle");
+      const loadout = document.getElementById("hud-loadout");
+      if (loadout) loadout.classList.add("hud-idle");
 
       const btnStart = document.getElementById("btn-start");
       if (btnStart) {
@@ -1730,6 +1785,8 @@
       hideStartOverlay();
       const hud = document.getElementById("hud");
       if (hud) hud.classList.remove("hud-idle");
+      const loadout = document.getElementById("hud-loadout");
+      if (loadout) loadout.classList.remove("hud-idle");
       resetRun();
     },
   };
