@@ -1115,10 +1115,10 @@
       playTone(620, 35, 0.03);
     }
 
-    const bombNow = global.Input.isDown("KeyB");
+    const keyB = global.Input.isDown("KeyB");
+    const bombFromUi = global.Input.consumeBombButton();
     if (
-      bombNow &&
-      !bombKeyPrev &&
+      (keyB && !bombKeyPrev || bombFromUi) &&
       state.bombStock > 0
     ) {
       state.bombStock -= 1;
@@ -1139,7 +1139,7 @@
       playTone(260, 55, 0.036);
       playTone(420, 38, 0.028);
     }
-    bombKeyPrev = bombNow;
+    bombKeyPrev = keyB;
   }
 
   function updateBullets(dt) {
@@ -1479,7 +1479,12 @@
     syncHud();
     if (state.lives <= 0) {
       state.phase = "gameover";
-      showOverlay("게임 오버", "다시 하기 버튼 또는 스페이스");
+      showOverlay(
+        "게임 오버",
+        global.Input.prefersCoarsePointer()
+          ? "다시 하기 버튼"
+          : "다시 하기 버튼 또는 스페이스"
+      );
       return;
     }
     p.hp = maxHp;

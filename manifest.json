@@ -1,0 +1,10 @@
+{
+  "name": "GALAXYAN",
+  "short_name": "GALAXYAN",
+  "description": "HTML5 Canvas 네온 슈팅",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#030510",
+  "theme_color": "#030510"
+}

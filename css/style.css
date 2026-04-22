@@ -4,18 +4,29 @@
   box-sizing: border-box;
 }
 
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 22px;
   padding: 28px 16px;
+  padding-top: max(28px, env(safe-area-inset-top, 0));
+  padding-bottom: max(28px, env(safe-area-inset-bottom, 0));
+  padding-left: max(16px, env(safe-area-inset-left, 0));
+  padding-right: max(16px, env(safe-area-inset-right, 0));
   background: #030510;
   font-family: "Segoe UI", system-ui, sans-serif;
   color: #e8f0ff;
+  overflow-x: hidden;
+  overscroll-behavior: none;
 }
 
 .sky-backdrop {
@@ -278,6 +289,8 @@ body {
 #wrap {
   position: relative;
   z-index: 1;
+  width: 100%;
+  max-width: 480px;
   border-radius: 4px;
   box-shadow:
     0 0 0 1px rgba(100, 200, 255, 0.35),
@@ -288,6 +301,10 @@ body {
 
 #game {
   display: block;
+  width: 100%;
+  height: auto;
+  max-height: min(100dvh - 220px, 82dvh);
+  aspect-ratio: 480 / 640;
   border-radius: 4px;
   background: #03060e;
   image-rendering: pixelated;
@@ -295,6 +312,63 @@ body {
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
+}
+
+/* 터치(모바일) 전용: 폭탄 버튼, 시작 안내 */
+.start-touch-hint {
+  display: none;
+  margin: 0 0 16px;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: rgba(160, 200, 255, 0.8);
+  letter-spacing: 0.02em;
+}
+
+.touch-input .start-touch-hint {
+  display: block;
+}
+
+.btn-bomb {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 2;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 4.5rem;
+  min-height: 2.75rem;
+  padding: 10px 12px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: #0a0c12;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ffd8a0 0%, #e87030 50%, #a04018 100%);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.35) inset,
+    0 3px 0 #5a2410,
+    0 6px 20px rgba(255, 130, 60, 0.4);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.btn-bomb:active {
+  transform: translateY(2px);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.2) inset,
+    0 1px 0 #5a2410,
+    0 2px 12px rgba(255, 100, 40, 0.3);
+}
+
+.touch-input .btn-bomb {
+  display: flex;
+}
+
+#start-overlay:not(.hidden) ~ .btn-bomb {
+  display: none;
 }
 
 #hud.hud-idle {
@@ -616,4 +690,26 @@ body {
 #btn-restart:focus-visible {
   outline: 2px solid #b8e0ff;
   outline-offset: 3px;
+}
+
+@media (max-width: 400px) {
+  body {
+    gap: 12px;
+    padding-top: max(12px, env(safe-area-inset-top, 0));
+  }
+
+  .game-header {
+    max-width: 100%;
+  }
+
+  .game-tagline,
+  .game-tagline-ko {
+    font-size: 0.78rem;
+  }
+
+  #bomb-line {
+    max-width: 8.2rem;
+    font-size: 8px;
+    line-height: 1.2;
+  }
 }

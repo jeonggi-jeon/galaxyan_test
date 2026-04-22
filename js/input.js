@@ -6,6 +6,8 @@
   /** 플레이어 왼쪽 x · 위쪽 y (게임 좌표). 터치 한 번도 없으면 null */
   let touchPlayerLeftX = null;
   let touchPlayerTopY = null;
+  /** 터치/포인터로 누른 #btn-bomb 한 번 — 프레임당 1회 소비 */
+  let bombButtonPending = false;
 
   function gameMetrics() {
     const E = global.Entities;
@@ -51,6 +53,7 @@
   function onTouchStart(e) {
     touching = true;
     updateTouchFromEvent(e);
+    if (e.cancelable) e.preventDefault();
   }
 
   function onTouchMove(e) {
@@ -70,10 +73,40 @@
     touching = false;
   }
 
+  const UI_BOMB_REARM_MS = 200;
+  let lastBombUiAt = 0;
+
+  function setBombFromUi() {
+    const t =
+      typeof performance !== "undefined" && performance.now
+        ? performance.now()
+        : Date.now();
+    if (t - lastBombUiAt < UI_BOMB_REARM_MS) return;
+    lastBombUiAt = t;
+    bombButtonPending = true;
+  }
+
+  function bindBombButton(bombEl) {
+    if (!bombEl) return;
+    const onPtr = (e) => {
+      if (e && e.button != null && e.button !== 0) return;
+      e.preventDefault();
+      setBombFromUi();
+    };
+    bombEl.addEventListener("pointerdown", onPtr, { passive: false });
+    bombEl.addEventListener("keydown", (e) => {
+      if (e.key !== " " && e.key !== "Enter") return;
+      e.preventDefault();
+      if (e.repeat) return;
+      setBombFromUi();
+    });
+  }
+
   global.Input = {
     init(canvas) {
       canvasEl = canvas;
       if (!canvasEl) return;
+      bindBombButton(document.getElementById("btn-bomb"));
       canvasEl.addEventListener("touchstart", onTouchStart, {
         passive: false,
       });
@@ -100,10 +133,24 @@
         ) {
           return true;
         }
+        if (
+          typeof navigator !== "undefined" &&
+          navigator.maxTouchPoints > 0 &&
+          mq("(max-width: 1024px)").matches
+        ) {
+          return true;
+        }
       } catch (_e) {
         /* ignore */
       }
       return false;
+    },
+
+    /** 터치 쪽 폭탄 버튼(HTML)에서 한 프레임만 true */
+    consumeBombButton() {
+      const t = bombButtonPending;
+      bombButtonPending = false;
+      return t;
     },
 
     isTouching() {
