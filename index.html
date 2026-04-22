@@ -53,18 +53,20 @@
     </div>
     <div id="hud">
       <div id="score-line">점수: <span id="score">0</span></div>
-      <div id="level-line">레벨: <span id="level">1</span></div>
-      <div id="hp-line" class="hud-hp">
-        <span class="hud-hp-label">체력</span>
-        <div
-          class="hud-hp-track"
-          role="progressbar"
-          aria-valuemin="0"
-          aria-valuemax="100"
-          aria-valuenow="100"
-          aria-label="플레이어 체력"
-        >
-          <div id="hp-fill" class="hud-hp-fill"></div>
+      <div class="hud-level-hp" aria-label="레벨 및 체력">
+        <div id="level-line">레벨: <span id="level">1</span></div>
+        <div id="hp-line" class="hud-hp">
+          <span class="hud-hp-label">체력</span>
+          <div
+            class="hud-hp-track"
+            role="progressbar"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="100"
+            aria-label="플레이어 체력"
+          >
+            <div id="hp-fill" class="hud-hp-fill"></div>
+          </div>
         </div>
       </div>
       <div id="lives-line">생명: <span id="lives">3</span></div>
