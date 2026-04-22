@@ -286,11 +286,22 @@ body {
   color: rgba(200, 218, 245, 0.72);
 }
 
-#wrap {
+/* 게임 프레임 + (모바일) BOMB: 한 열, 버튼은 캔버스 아래 오른쪽 */
+.game-outer {
   position: relative;
   z-index: 1;
   width: 100%;
   max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+#wrap {
+  position: relative;
+  z-index: 1;
+  width: 100%;
   border-radius: 4px;
   box-shadow:
     0 0 0 1px rgba(100, 200, 255, 0.35),
@@ -303,7 +314,7 @@ body {
   display: block;
   width: 100%;
   height: auto;
-  max-height: min(100dvh - 220px, 82dvh);
+  max-height: min(100dvh - 260px, 78dvh);
   aspect-ratio: 480 / 640;
   border-radius: 4px;
   background: #03060e;
@@ -329,15 +340,17 @@ body {
 }
 
 .btn-bomb {
-  position: absolute;
-  right: 10px;
-  bottom: 10px;
-  z-index: 2;
+  position: static;
+  flex: 0 0 auto;
   display: none;
   align-items: center;
   justify-content: center;
+  align-self: flex-end;
   min-width: 4.5rem;
   min-height: 2.75rem;
+  margin-top: 6px;
+  margin-bottom: max(2px, env(safe-area-inset-bottom, 0px));
+  margin-right: 0;
   padding: 10px 12px;
   font-size: 0.7rem;
   font-weight: 800;
@@ -367,7 +380,9 @@ body {
   display: flex;
 }
 
-#start-overlay:not(.hidden) ~ .btn-bomb {
+/* 시작/게임오버: 캔버스는 가려지지만 BOMB는 프레임 밖이므로 같은 상태일 때 비표시 */
+.touch-input .game-outer:has(#start-overlay:not(.hidden)) .btn-bomb,
+.touch-input .game-outer:has(#overlay:not(.hidden)) .btn-bomb {
   display: none;
 }
 
@@ -573,6 +588,36 @@ body {
 #bomb-line .bomb-hint {
   opacity: 0.85;
   font-weight: 800;
+}
+
+.touch-input #bomb-line .bomb-key-hint {
+  display: none;
+}
+
+/* 터치: 한 줄에 5칸이 겹침 — 체력 바는 아래로 */
+.touch-input #hud {
+  flex-wrap: wrap;
+  row-gap: 4px;
+  column-gap: 4px;
+  padding: 5px 7px 6px;
+  align-content: flex-start;
+}
+
+.touch-input #score-line,
+.touch-input #level-line,
+.touch-input #lives-line,
+.touch-input #bomb-line {
+  order: 1;
+}
+
+.touch-input #hp-line.hud-hp {
+  order: 2;
+  flex: 0 0 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0 0 0 0;
+  justify-content: space-between;
 }
 
 #overlay {

@@ -37,27 +37,20 @@
     <p class="game-tagline">Neon Squadron · HTML5 Canvas</p>
     <p class="game-tagline-ko">겔럭시안 스타일 아케이드 슈팅</p>
   </header>
-  <div id="wrap">
-    <canvas id="game" width="480" height="640" aria-label="게임 화면"></canvas>
-    <div id="start-overlay" class="screen-overlay">
+  <div class="game-outer">
+    <div id="wrap">
+      <canvas id="game" width="480" height="640" aria-label="게임 화면"></canvas>
+      <div id="start-overlay" class="screen-overlay">
       <div class="overlay-card">
         <p class="start-eyebrow">GALAXYAN</p>
         <p class="start-heading">준비 완료</p>
         <p class="start-desc">네온이 깜빡이는 심연 속으로.<br />당신의 포화가 새로운 별자리를 만든다.</p>
         <p class="start-touch-hint" aria-hidden="true">
-          기체는 캔버스를 누른 채로 손가락을 옮기며 조종합니다. 자동 발사 · 우측 하단 폭탄.
+          기체는 캔버스를 누른 채로 손가락을 옮기며 조종합니다. 자동 발사 · 캔버스 아래 오른쪽 폭탄.
         </p>
         <button type="button" id="btn-start">게임 시작</button>
       </div>
     </div>
-    <button
-      type="button"
-      id="btn-bomb"
-      class="btn-bomb"
-      aria-label="폭탄 발사, 키보드 B"
-    >
-      BOMB
-    </button>
     <div id="hud">
       <div id="score-line">점수: <span id="score">0</span></div>
       <div id="level-line">레벨: <span id="level">1</span></div>
@@ -75,7 +68,9 @@
         </div>
       </div>
       <div id="lives-line">생명: <span id="lives">3</span></div>
-      <div id="bomb-line">폭탄: <span id="bombs">0</span>/5 · <span class="bomb-hint">B</span></div>
+      <div id="bomb-line">
+        폭탄: <span id="bombs">0</span>/5<span class="bomb-key-hint"> · <span class="bomb-hint">B</span></span>
+      </div>
     </div>
     <div id="overlay" class="hidden">
       <div id="overlay-card">
@@ -84,6 +79,15 @@
         <button type="button" id="btn-restart">다시 하기</button>
       </div>
     </div>
+  </div>
+    <button
+      type="button"
+      id="btn-bomb"
+      class="btn-bomb"
+      aria-label="폭탄 발사, 키보드 B"
+    >
+      BOMB
+    </button>
   </div>
   <script src="js/input.js"></script>
   <script src="js/entities.js"></script>
