@@ -605,53 +605,73 @@ body {
   display: none;
 }
 
-/* 터치: 점수 · 레벨+체력 · 생명 · 폭탄 한 줄 */
+/* 터치: 1행 grid로 줄바꿈 방지 · 가운데(레벨+체만 minmax(0)로 압축) */
 .touch-input #hud {
-  flex-wrap: nowrap;
-  gap: 2px 3px;
-  padding: 4px 5px 5px;
-  font-size: 9px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-rows: auto;
+  gap: 0 2px;
+  align-items: center;
+  padding: 3px 3px 4px;
+  font-size: 8.5px;
+  line-height: 1.15;
+  flex-wrap: unset;
+  justify-content: unset;
 }
 
 .touch-input .hud-level-hp {
-  flex: 1 1 0;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  align-self: stretch;
   min-width: 0;
-  gap: 3px;
-  justify-content: center;
-  max-width: 42%;
+  max-width: none;
+  flex: unset;
+  gap: 2px;
+  justify-content: flex-start;
+  overflow: hidden;
 }
 
 .touch-input .hud-hp {
-  flex: 0 1 auto;
+  flex: 1 1 0;
   min-width: 0;
-  max-width: min(6.5rem, 22vw);
-  gap: 2px;
+  max-width: 100%;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  gap: 1px 2px;
 }
 
 .touch-input .hud-hp-label {
-  font-size: 7px;
-  letter-spacing: 0.04em;
+  display: none;
+  /* 터치 1행 정렬: 막대만 · 진행률 bar에 aria-label 유지 */
 }
 
 .touch-input .hud-hp-track {
-  min-width: 28px;
-  height: 6px;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 100%;
+  height: 5px;
 }
 
 .touch-input #level-line {
-  padding: 2px 5px 2px 6px;
+  padding: 1px 4px 1px 5px;
   flex: 0 0 auto;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .touch-input #score-line {
-  padding: 2px 5px;
-  flex: 0 0 auto;
+  padding: 1px 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .touch-input #lives-line,
 .touch-input #bomb-line {
-  padding: 2px 5px;
-  flex: 0 0 auto;
+  padding: 1px 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 #overlay {
