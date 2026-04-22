@@ -409,6 +409,10 @@
   /** 파워↑ 아이템: 탄속만 상승 (부채 발사 수는 fanSpread 아이템) */
   const MAX_BULLET_POWER = 14;
 
+  /** damageUp: 플레이어 총탄 1적중당 HP 감소량 (기본 1) */
+  const MAX_DAMAGE_LEVEL = 5;
+  const DAMAGE_ON_RESPAWN = 1;
+
   /** 리스폰 시 탄속 계급만 초기화 (부채 발사 수는 fanBullets로 분리됨) */
   const BULLET_POWER_ON_RESPAWN = 1;
   const BOMB_MAX_STOCK = 5;
@@ -441,12 +445,33 @@
     if (r < 0.156) return "shield";
     /** 알약·하트 회복 — 이전(~7.6%)보다 구간 확대 (~14.7%) */
     if (r < 0.305) return Math.random() < 0.5 ? "healPill" : "healHeart";
-    if (r < 0.385) return "powerBoost";
-    if (r < 0.465) return "fanSpread";
-    if (r < 0.598) return "bomb";
+    if (r < 0.38) return "powerBoost";
+    if (r < 0.425) return "damageUp";
+    if (r < 0.5) return "fanSpread";
+    if (r < 0.625) return "bomb";
     return WEAPON_PICK_IDS[
       (Math.random() * WEAPON_PICK_IDS.length) | 0
     ];
+  }
+
+  /** 옆을 지나가는 플랭커 격추 시, 일반 랜덤과 동일한 종류의 낙하 아이템 1개 */
+  function spawnPowerupFromFlanker(fk) {
+    if (!state || !state.powerups) return;
+    const w = 30;
+    const h = 30;
+    const cx = fk.x + fk.w * 0.5;
+    const cy = fk.y + fk.h * 0.5;
+    const px = Math.max(EN.margin, Math.min(W - w - EN.margin, cx - w * 0.5));
+    const py = Math.max(EN.margin, Math.min(H - h - EN.margin, cy - h * 0.5));
+    state.powerups.push({
+      x: px,
+      y: py,
+      vy: 72 + rngRange(0, 52),
+      w,
+      h,
+      kind: rollPowerupKind(),
+      alive: true,
+    });
   }
 
   function eliteSpawnChance(lv, row, rows) {
@@ -525,6 +550,7 @@
       weapon: "standard",
       bulletPower: 1,
       fanBullets: 1,
+      damageLevel: 1,
       enemies: wave.enemies,
       formation: {
         anchorX: 28,
@@ -864,6 +890,7 @@
       if (!fk.alive) continue;
       if (!circleHitsRect(px, py, R, fk.x, fk.y, fk.w, fk.h)) continue;
       spawnFlankerExplosion(fk.x + fk.w / 2, fk.y + fk.h / 2);
+      spawnPowerupFromFlanker(fk);
       fk.alive = false;
       state.score += 28 + Math.min(state.level * 6, 72);
     }
@@ -1183,6 +1210,12 @@
       return EN.scoreByRow[i] ?? 10;
     };
 
+    function playerBulletHitDamage() {
+      const d =
+        state && state.damageLevel != null ? state.damageLevel | 0 : 1;
+      return Math.max(1, Math.min(MAX_DAMAGE_LEVEL, d));
+    }
+
     function consumePlayerBullet(idx) {
       const bb = state.bullets[idx];
       const hl = bb.hitsLeft != null ? bb.hitsLeft : 1;
@@ -1201,6 +1234,7 @@
         const fr = { x: fk.x, y: fk.y, w: fk.w, h: fk.h };
         if (E.rectIntersect(br, fr)) {
           spawnFlankerExplosion(fk.x + fk.w / 2, fk.y + fk.h / 2);
+          spawnPowerupFromFlanker(fk);
           fk.alive = false;
           consumePlayerBullet(i);
           state.score += 28 + Math.min(state.level * 6, 72);
@@ -1217,7 +1251,7 @@
           const cx = er.x + er.w / 2;
           const cy = er.y + er.h / 2;
           const hp0 = e.hp != null ? e.hp : 1;
-          e.hp = hp0 - 1;
+          e.hp = hp0 - playerBulletHitDamage();
           const basePts = rowScore(e.row);
           if (e.hp <= 0) {
             e.alive = false;
@@ -1420,6 +1454,17 @@
             playTone(720, 38, 0.032);
             playTone(980, 22, 0.024);
           }
+        } else if (k === "damageUp") {
+          if (state.damageLevel < MAX_DAMAGE_LEVEL) {
+            state.damageLevel = (state.damageLevel | 0) + 1;
+            playTone(560, 48, 0.04);
+            playTone(700, 42, 0.034);
+            playTone(900, 35, 0.028);
+          } else {
+            state.score += 400;
+            playTone(600, 30, 0.028);
+            playTone(800, 22, 0.02);
+          }
         } else if (k === "fanSpread") {
           if (state.fanBullets < 5) {
             state.fanBullets =
@@ -1495,6 +1540,7 @@
     state.weapon = "standard";
     state.bulletPower = BULLET_POWER_ON_RESPAWN;
     state.fanBullets = 1;
+    state.damageLevel = DAMAGE_ON_RESPAWN;
     if (state.bombMissiles) state.bombMissiles.length = 0;
     syncHud();
   }

@@ -1298,6 +1298,75 @@
     ctx.restore();
   }
 
+  /** 총탄 데미지(적 HP/적중) 상승 — 자주빛 네잎+검 */
+  function drawDamageUpPowerup(ctx, p, timeSec) {
+    const t = timeSec || 0;
+    const cx = p.x + p.w / 2;
+    const cy = p.y + p.h / 2;
+    const pulse = 0.9 + 0.1 * Math.sin(t * 6.5 + p.y * 0.05);
+    const sc = p.w * 0.5;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(pulse, pulse);
+    ctx.rotate(t * 0.35 + p.x * 0.01);
+
+    const halo = ctx.createRadialGradient(0, 0, 0, 0, 0, sc * 2.7);
+    halo.addColorStop(0, "rgba(220,100,255,0.5)");
+    halo.addColorStop(0.4, "rgba(160,40,200,0.2)");
+    halo.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.globalAlpha = 0.88;
+    ctx.fillStyle = halo;
+    ctx.beginPath();
+    ctx.arc(0, 0, sc * 2.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    const blade = 4;
+    for (let i = 0; i < blade; i++) {
+      const a = (i / blade) * Math.PI * 2 - Math.PI / 2;
+      ctx.save();
+      ctx.rotate(a);
+      ctx.beginPath();
+      const g = ctx.createLinearGradient(0, -sc * 1.2, 0, sc * 0.1);
+      g.addColorStop(0, "rgba(255,220,255,0.95)");
+      g.addColorStop(0.4, "rgba(200,60,200,0.9)");
+      g.addColorStop(1, "rgba(80,20,100,0.4)");
+      ctx.fillStyle = g;
+      ctx.moveTo(0, 0);
+      ctx.lineTo(-sc * 0.28, sc * 0.85);
+      ctx.lineTo(0, sc * 0.2);
+      ctx.lineTo(sc * 0.28, sc * 0.85);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255,220,255,0.5)";
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    ctx.shadowColor = "#e040ff";
+    ctx.shadowBlur = 14;
+    const coreG = ctx.createRadialGradient(0, 0, 0, 0, 0, sc * 0.5);
+    coreG.addColorStop(0, "#fff6ff");
+    coreG.addColorStop(0.5, "#c020c8");
+    coreG.addColorStop(1, "#300840");
+    ctx.beginPath();
+    ctx.arc(0, 0, sc * 0.42, 0, Math.PI * 2);
+    ctx.fillStyle = coreG;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "rgba(0,0,0,0.5)";
+    ctx.font = "bold 8px system-ui,sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("HIT", 0, 1.5);
+    ctx.fillStyle = "rgba(255,240,255,0.95)";
+    ctx.fillText("HIT", 0, 0);
+    ctx.restore();
+  }
+
   /** 부채 발사 수 증가 — 부채 실루엣(호 3개) */
   function drawFanSpreadPowerup(ctx, p, timeSec) {
     const t = timeSec || 0;
@@ -1755,6 +1824,10 @@
     }
     if (p.kind === "powerBoost") {
       drawPowerBoostPowerup(ctx, p, timeSec);
+      return;
+    }
+    if (p.kind === "damageUp") {
+      drawDamageUpPowerup(ctx, p, timeSec);
       return;
     }
     if (WEAPON[p.kind] && p.kind !== "standard") {
