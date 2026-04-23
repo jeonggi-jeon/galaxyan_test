@@ -11,8 +11,6 @@
   const DAMAGE_CONTACT = 36;
   /** 다이빙이 비정상적으로 길어질 때 포메이션으로 복귀 (초) */
   const DIVE_MAX_SECONDS = 14;
-  /** 다이빙 중 적이 화면(여유 패딩) 밖으로 나가면 포메이션 복귀 */
-  const DIVE_OFFSCREEN_PAD = 48;
   /**
    * 다이빙 적이 바닥에서 멈출 때 적 상단 y의 하한.
    * 예전에는 margin*3이라 적 하단이 플레이어 최하단(H-m-ph)보다 위에만 있어 충돌이 안 났음.
@@ -1005,8 +1003,12 @@
     state.bombMissiles = next;
   }
 
+  /** 스프라이트 AABB가 캔버스(0,0)~(W,H)와 겹치지 않음(한 픽셀도 밖) */
+  function isFullyOffCanvasRect(r) {
+    return r.x + r.w <= 0 || r.x >= W || r.y + r.h <= 0 || r.y >= H;
+  }
+
   function updateDivingEnemies(dt) {
-    const pad = DIVE_OFFSCREEN_PAD;
     const diveFloorY = H - EN.h - DIVE_STOP_BOTTOM_GAP;
     for (const e of state.enemies) {
       if (!e.alive || !e.diving) continue;
@@ -1020,17 +1022,14 @@
         continue;
       }
 
-      const offScreen =
-        e.y + EN.h < -pad ||
-        e.y > H + pad ||
-        e.x + EN.w < -pad ||
-        e.x > W + pad;
+      const dRect = { x: e.x, y: e.y, w: EN.w, h: EN.h };
+      const fullyOut = isFullyOffCanvasRect(dRect);
       const bottomExit = e.y > H - EN.margin * 2;
       const topExit =
         e.y + EN.h < EN.margin ||
         e.y < EN.margin * 0.35;
       const diveTimeout = e.diveDuration > DIVE_MAX_SECONDS;
-      if (offScreen || bottomExit || topExit || diveTimeout) {
+      if (fullyOut || bottomExit || topExit || diveTimeout) {
         endEnemyDive(e);
         continue;
       }
@@ -1640,6 +1639,35 @@
     playTone(780 + state.level * 18, 70, 0.038);
   }
 
+  /**
+   * 한 프레임 위치 갱신 후, 화면 밖에만 남은 그리드 적을 정리.
+   * - 다이빙: 완전히 밖이면 포메이션 복귀(endEnemyDive)만(한 번에 보이게)
+   * - 그 외(포메이션): 버그/상태 꼬임이면 격추로 웨이브를 막지 않음
+   */
+  function cullOrRecoverOffscreenEnemies() {
+    if (state.phase !== "playing" || !state.enemies) return;
+    let killedAny = false;
+    for (const e of state.enemies) {
+      if (!e.alive) continue;
+      const r = enemyRect(state, e);
+      if (!isFullyOffCanvasRect(r)) continue;
+      if (e.diving) {
+        endEnemyDive(e);
+        continue;
+      }
+      const cx = r.x + r.w / 2;
+      const cy = r.y + r.h / 2;
+      spawnEnemyExplosion(cx, cy, e.row, e.elite);
+      const i = Math.min(e.row, EN.scoreByRow.length - 1);
+      const basePts = EN.scoreByRow[i] ?? 10;
+      e.alive = false;
+      const mult = e.elite ? 1.35 : 1;
+      state.score += Math.floor(basePts * mult);
+      killedAny = true;
+    }
+    if (killedAny) syncHud();
+  }
+
   function checkWinLose() {
     if (state.phase !== "playing") return;
 
@@ -1734,6 +1762,7 @@
       updateEnemyHitFlash(dt);
       handleCollisions();
       updateFx(dt);
+      cullOrRecoverOffscreenEnemies();
       checkWinLose();
     } else if (state.phase === "gameover") {
       updateFx(dt);
