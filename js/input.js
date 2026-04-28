@@ -3,9 +3,12 @@
 
   let canvasEl = null;
   let touching = false;
-  /** 플레이어 왼쪽 x · 위쪽 y (게임 좌표). 터치 한 번도 없으면 null */
-  let touchPlayerLeftX = null;
-  let touchPlayerTopY = null;
+  /** 직전 터치 포인터 위치(게임 좌표). 상대 이동용 */
+  let touchPrevGameX = null;
+  let touchPrevGameY = null;
+  /** 터치 이동 중 프레임 사이에 누적된 델타(여러 touchmove 합산) */
+  let touchAccumDx = 0;
+  let touchAccumDy = 0;
   /** 터치/포인터로 누른 #btn-bomb 한 번 — 프레임당 1회 소비 */
   let bombButtonPending = false;
 
@@ -37,40 +40,68 @@
     return top;
   }
 
-  function updateTouchFromEvent(e) {
-    if (!canvasEl || !e.touches || e.touches.length === 0) return;
-    const t = e.touches[0];
+  function pointerToGameCoords(clientX, clientY) {
     const rect = canvasEl.getBoundingClientRect();
-    const { W, H, pw, ph } = gameMetrics();
+    const { W, H } = gameMetrics();
     const sx = W / rect.width;
     const sy = H / rect.height;
-    const cx = (t.clientX - rect.left) * sx;
-    const cy = (t.clientY - rect.top) * sy;
-    touchPlayerLeftX = clampPlayerLeft(cx - pw / 2);
-    touchPlayerTopY = clampPlayerTop(cy - ph / 2);
+    return {
+      x: (clientX - rect.left) * sx,
+      y: (clientY - rect.top) * sy,
+    };
+  }
+
+  /** touchmove: 손가락 이동분만 누적(기체는 현재 위치에서 상대 이동) */
+  function accumulateTouchDeltaFromEvent(e) {
+    if (!canvasEl || !e.touches || e.touches.length === 0) return;
+    const t = e.touches[0];
+    const { x: cx, y: cy } = pointerToGameCoords(t.clientX, t.clientY);
+    if (touchPrevGameX == null || touchPrevGameY == null) {
+      touchPrevGameX = cx;
+      touchPrevGameY = cy;
+      return;
+    }
+    touchAccumDx += cx - touchPrevGameX;
+    touchAccumDy += cy - touchPrevGameY;
+    touchPrevGameX = cx;
+    touchPrevGameY = cy;
   }
 
   function onTouchStart(e) {
     touching = true;
-    updateTouchFromEvent(e);
+    touchAccumDx = 0;
+    touchAccumDy = 0;
+    if (canvasEl && e.touches && e.touches.length > 0) {
+      const t = e.touches[0];
+      const { x, y } = pointerToGameCoords(t.clientX, t.clientY);
+      touchPrevGameX = x;
+      touchPrevGameY = y;
+    }
     if (e.cancelable) e.preventDefault();
   }
 
   function onTouchMove(e) {
     touching = e.touches.length > 0;
-    updateTouchFromEvent(e);
+    accumulateTouchDeltaFromEvent(e);
     if (e.cancelable) e.preventDefault();
   }
 
   function onTouchEnd(e) {
     touching = e.touches.length > 0;
     if (!touching) {
-      /* 손가락을 떼도 기체 위치 유지 */
+      touchPrevGameX = null;
+      touchPrevGameY = null;
+      touchAccumDx = 0;
+      touchAccumDy = 0;
     }
   }
 
   function onTouchCancel() {
     touching = false;
+    touchPrevGameX = null;
+    touchPrevGameY = null;
+    touchAccumDx = 0;
+    touchAccumDy = 0;
   }
 
   const UI_BOMB_REARM_MS = 200;
@@ -157,14 +188,16 @@
       return touching;
     },
 
-    /** 터치로 계산된 플레이어 왼쪽 x (클램프됨). 없으면 null */
-    getTouchPlayerLeftX() {
-      return touchPlayerLeftX;
-    },
-
-    /** 터치로 계산된 플레이어 위쪽 y (클램프됨). 없으면 null */
-    getTouchPlayerTopY() {
-      return touchPlayerTopY;
+    /**
+     * 이번 프레임에 적용할 터치 이동량(게임 좌표 px).
+     * 여러 touchmove가 한 프레임에 오면 합산 후 소비 시 0으로 초기화.
+     */
+    consumeTouchDragDelta() {
+      const dx = touchAccumDx;
+      const dy = touchAccumDy;
+      touchAccumDx = 0;
+      touchAccumDy = 0;
+      return { dx, dy };
     },
 
     clampPlayerLeftGame(left) {

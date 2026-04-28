@@ -1160,10 +1160,9 @@
       dy += 1;
 
     if (touchMode && global.Input.isTouching()) {
-      const tx = global.Input.getTouchPlayerLeftX();
-      const ty = global.Input.getTouchPlayerTopY();
-      if (tx != null) p.x = tx;
-      if (ty != null) p.y = ty;
+      const { dx: tdx, dy: tdy } = global.Input.consumeTouchDragDelta();
+      p.x += tdx;
+      p.y += tdy;
     } else if (dx !== 0 || dy !== 0) {
       const len = Math.hypot(dx, dy) || 1;
       const sp = PL.speed / len;
