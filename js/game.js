@@ -409,10 +409,6 @@
 
   /** damageUp: 플레이어 총탄 1적중당 HP 감소량 (기본 1) */
   const MAX_DAMAGE_LEVEL = 5;
-  const DAMAGE_ON_RESPAWN = 1;
-
-  /** 리스폰 시 탄속 계급만 초기화 (부채 발사 수는 fanBullets로 분리됨) */
-  const BULLET_POWER_ON_RESPAWN = 1;
   const BOMB_MAX_STOCK = 5;
   /** 폭발이 닿는 범위(이전 228px 대비 50%) */
   const BOMB_BLAST_RADIUS = 114;
@@ -1588,10 +1584,6 @@
     p.y = PL.y;
     p.invuln = PL.invulnAfterHit;
     state.bullets.length = 0;
-    state.weapon = "standard";
-    state.bulletPower = BULLET_POWER_ON_RESPAWN;
-    state.fanBullets = 1;
-    state.damageLevel = DAMAGE_ON_RESPAWN;
     if (state.bombMissiles) state.bombMissiles.length = 0;
     syncHud();
   }
